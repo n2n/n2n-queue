@@ -1,0 +1,116 @@
+<?php
+
+namespace n2n\queue\impl\fs;
+
+use PHPUnit\Framework\TestCase;
+use n2n\util\io\fs\FsPath;
+use n2n\cache\CharacteristicsList;
+use n2n\concurrency\sync\impl\fs\FileLock;
+use n2n\util\HashUtils;
+
+class FileQueueStoreTest extends TestCase {
+	private FsPath $tempDirFsPath;
+
+	function setUp(): void {
+		$tempfile = tempnam(sys_get_temp_dir(),'');
+		if (file_exists($tempfile)) { unlink($tempfile); }
+		mkdir($tempfile);
+
+		$this->tempDirFsPath = new FsPath($tempfile);
+	}
+
+	function testAck() {
+		$queue = new FileQueueStore($this->tempDirFsPath, 0777);
+		
+		$queue->add(['prop' => 'dato']);
+		$polledRef = $queue->poll();
+
+		$this->assertSame(['prop' => 'dato'], $polledRef->data);
+		$this->assertCount(1, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
+		$polledRef->ack();
+		$this->assertCount(0, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
+
+		$this->assertNull($queue->poll());
+	}
+
+	function testReject() {
+		$queue = new FileQueueStore($this->tempDirFsPath, 0777);
+
+		$queue->add(['prop' => 'dato']);
+
+		$polledRef = $queue->poll();
+		$this->assertSame(['prop' => 'dato'], $polledRef->data);
+		$this->assertCount(1, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
+		$polledRef->reject(true);
+
+		$this->assertCount(0, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
+
+		$polledRef = $queue->poll();
+		$this->assertSame(['prop' => 'dato'], $polledRef->data);
+		$this->assertCount(1, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
+		$polledRef->reject();
+
+		$this->assertCount(0, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
+
+		$this->assertNull($queue->poll());
+	}
+
+	function testPollWithoutInit() {
+		$queue = new FileQueueStore($this->tempDirFsPath, 0777);
+
+		$this->assertNull($queue->poll());
+	}
+
+	function testPollOrderWithAcquireNb() {
+		$queue = new FileQueueStore($this->tempDirFsPath, 0777);
+		$queue->add('dato1');
+		$queue->add('dato2');
+
+		$ref1 = $queue->poll();
+		$this->assertSame('dato1', $ref1->data);
+
+		$ref2 = $queue->poll();
+		$this->assertSame('dato2', $ref2->data);
+	}
+
+	/**
+	 * @throws \ReflectionException
+	 */
+	function testClearDoNotRemoveLockFiles() {
+		$queue = new FileQueueStore($this->tempDirFsPath, 0777);
+		$queue->add('dato1');
+		$queue->add('dato2');
+
+		$ref1 = $queue->poll();
+		$ref2 = $queue->poll();
+
+		$this->assertCount(2, $this->tempDirFsPath->ext(FileQueueStore::DATA_FOLDER)->getChildren());
+		$this->assertCount(2, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
+
+		$queue->clear();
+
+		$this->assertCount(0, $this->tempDirFsPath->ext(FileQueueStore::DATA_FOLDER)->getChildren());
+		$this->assertCount(2, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
+
+		$ref1->ack();
+		$ref2->reject();
+
+		$this->assertCount(0, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
+	}
+
+	function testRefDestruct() {
+		$queue = new FileQueueStore($this->tempDirFsPath, 0777);
+		$queue->add('dato1');
+
+		$ref1 = $queue->poll();
+
+		$this->assertCount(1, $this->tempDirFsPath->ext(FileQueueStore::DATA_FOLDER)->getChildren());
+		$this->assertCount(1, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
+
+		unset($ref1);
+
+		$this->assertCount(0, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
+		$this->assertCount(1, $this->tempDirFsPath->ext(FileQueueStore::DATA_FOLDER)->getChildren());
+	}
+
+}
