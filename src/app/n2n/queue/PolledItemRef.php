@@ -18,8 +18,14 @@ namespace n2n\queue;
 
 interface PolledItemRef {
 
+	/**
+	 * Item will be removed from the queue.
+	 */
 	function ack(): void;
 
+	/**
+	 * Item will only be removed from the queue if requeue is false.
+	 */
 	function reject(bool $requeue = false): void;
 
 	public mixed $data { get; }

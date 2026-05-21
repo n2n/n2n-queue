@@ -16,12 +16,21 @@
 namespace n2n\queue;
 
 /**
- * Defines thread safe queue used by some n2n modules
+ * Defines thread safe queue used by some n2n modules.
  */
 interface QueueStore {
 
+	/**
+	 * Adds an item to the queue.
+	 */
 	function add(mixed $data): void;
 
+	/**
+	 * Polls an item from the queue. Items which were allrady polled and not yet handled with
+	 * {@link PolledItemRef::ack()} or {@link PolledItemRef::reject()}, will be skipped.
+	 *
+	 * @return PolledItemRef|null
+	 */
 	function poll(): ?PolledItemRef;
 
 	/**
