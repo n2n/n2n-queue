@@ -15,7 +15,9 @@
  */
 namespace n2n\queue;
 
-
+/**
+ * References a polled item.
+ */
 interface PolledItemRef {
 
 	/**
