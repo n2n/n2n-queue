@@ -86,6 +86,40 @@ class FileQueueStoreTest extends TestCase {
 		$this->assertSame('dato2', $ref2->data);
 	}
 
+	function testAddAndPoll() {
+		$queue = new FileQueueStore($this->tempDirFsPath, 0777);
+		$ref1 = $queue->addAndPoll('dato1');
+		$ref2 = $queue->addAndPoll('dato2');
+
+		$this->assertCount(2, $this->tempDirFsPath->ext(FileQueueStore::DATA_FOLDER)->getChildren());
+		$this->assertCount(2, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
+
+		$this->assertNull($queue->poll());
+
+		$ref1->reject(true);
+
+		$this->assertCount(2, $this->tempDirFsPath->ext(FileQueueStore::DATA_FOLDER)->getChildren());
+		$this->assertCount(1, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
+
+		$polledRef = $queue->poll();
+		$this->assertSame('dato1', $polledRef->data);
+
+		$this->assertCount(2, $this->tempDirFsPath->ext(FileQueueStore::DATA_FOLDER)->getChildren());
+		$this->assertCount(2, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
+
+		$polledRef->ack();
+
+		$this->assertCount(1, $this->tempDirFsPath->ext(FileQueueStore::DATA_FOLDER)->getChildren());
+		$this->assertCount(1, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
+
+		$ref2->reject();
+
+		$this->assertCount(0, $this->tempDirFsPath->ext(FileQueueStore::DATA_FOLDER)->getChildren());
+		$this->assertCount(0, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
+
+		$this->assertNull($queue->poll());
+	}
+
 	/**
 	 * @throws \ReflectionException
 	 */

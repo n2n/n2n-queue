@@ -25,6 +25,7 @@ use n2n\concurrency\sync\LockMode;
 use n2n\util\StringUtils;
 use n2n\util\io\fs\FsPerm;
 use n2n\util\ex\ExUtils;
+use n2n\concurrency\sync\impl\fs\FileLock;
 
 class FileQueueStore implements QueueStore {
 
@@ -41,12 +42,12 @@ class FileQueueStore implements QueueStore {
 		$this->lockDirFsPath = $dirFsPath->ext(self::LOCK_FOLDER);
     }
 
-	private function createDataFsPath(string $fileName): FsPath {
+	private function createNewDataFsPath(): FsPath {
 		if (!$this->dataDirFsPath->isDir()) {
 			ExUtils::try(fn () => $this->dataDirFsPath->mkdirs());
 		}
 
-		return $this->dataDirFsPath->ext($fileName . self::DATA_FILE_SUFFIX);
+		return $this->dataDirFsPath->ext(uniqid(more_entropy: true) . self::DATA_FILE_SUFFIX);
 	}
 
 	private function createLockFsPath(FsPath $dataFileFsPath): FsPath {
@@ -59,8 +60,14 @@ class FileQueueStore implements QueueStore {
 
 
     function add(mixed $data): void {
-        $fileFsPath = $this->createDataFsPath(uniqid(more_entropy: true));
+		$fsPath = $this->createNewDataFsPath();
+		$fileLock = Sync::byFileLock($this->createLockFsPath($fsPath));
+		ExUtils::try(fn () => $fileLock->acquire());
+		$this->putContents($fsPath, $data);
+		$fileLock->release();
+    }
 
+	private function putContents(FsPath $fileFsPath, mixed $data): void {
 		try {
 			IoUtils::putContents($fileFsPath, serialize($data));
 		} catch (IoException $e) {
@@ -70,7 +77,8 @@ class FileQueueStore implements QueueStore {
 		if ($this->filePerm !== null) {
 			ExUtils::try(fn () => $fileFsPath->chmod($this->filePerm));
 		}
-    }
+
+	}
 
 	function poll(): ?PolledItemRef {
 		$fsPaths = $this->dataDirFsPath->getChildren();
@@ -84,16 +92,28 @@ class FileQueueStore implements QueueStore {
 				continue;
 			}
 
-			try {
-				$data = StringUtils::unserialize(IoUtils::getContents($fsPath));
-			} catch (IoException $e) {
-				throw new QueueOperationFailedException(previous: $e);
-			}
-
-			return new FilePolledItemRef($fsPath, $fileLock, $data);
+			return $this->createPolledItemRef($fsPath, $fileLock);
 		}
 
 		return null;
+	}
+
+	function addAndPoll(mixed $data): ?PolledItemRef {
+		$fsPath = $this->createNewDataFsPath();
+		$fileLock = Sync::byFileLock($this->createLockFsPath($fsPath));
+		ExUtils::try(fn () => $fileLock->acquire());
+		$this->putContents($fsPath, $data);
+		return $this->createPolledItemRef($fsPath, $fileLock);
+	}
+
+	private function createPolledItemRef(FsPath $fsPath, FileLock $fileLock): PolledItemRef {
+		try {
+			$data = StringUtils::unserialize(IoUtils::getContents($fsPath));
+		} catch (IoException $e) {
+			throw new QueueOperationFailedException(previous: $e);
+		}
+
+		return new FilePolledItemRef($fsPath, $fileLock, $data);
 	}
 
 	function clear(): void {

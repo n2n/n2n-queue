@@ -34,6 +34,16 @@ interface QueueStore {
 	function poll(): ?PolledItemRef;
 
 	/**
+	 * Adds an item like {@link self::add()} and returns a PolledItemRef for this exact item
+	 * as in {@link self::poll()} if this item was next in line to be polled.
+	 *
+	 * @param mixed $data
+	 * @return PolledItemRef|null
+	 */
+	function addAndPoll(mixed $data): ?PolledItemRef;
+
+
+	/**
 	 * Empties the whole queue.
 	 */
 	function clear(): void;
