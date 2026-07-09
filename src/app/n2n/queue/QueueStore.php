@@ -26,7 +26,7 @@ interface QueueStore {
 	function add(mixed $data): void;
 
 	/**
-	 * Polls an item from the queue. Items which were allrady polled and not yet handled with
+	 * Polls an item from the queue. Items which were already polled and not yet handled with
 	 * {@link PolledItemRef::ack()} or {@link PolledItemRef::reject()}, will be skipped.
 	 *
 	 * @return PolledItemRef|null

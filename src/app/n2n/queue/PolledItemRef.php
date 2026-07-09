@@ -16,7 +16,8 @@
 namespace n2n\queue;
 
 /**
- * References a polled item.
+ * References a polled item. If neither {@link #ack()} nor {@link #reject()} is called, the item must be requeued
+ * in any case.
  */
 interface PolledItemRef {
 
