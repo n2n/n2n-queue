@@ -2,10 +2,22 @@
 
 namespace n2n\ephemeral;
 
-class EphemeralQueueStoreTest {
-	/*
-	$queue = new Queue();
+use PHPUnit\Framework\TestCase;
 
+class EphemeralQueueStoreTest extends TestCase {
+
+	function setUp():void {
+	}
+
+	function testAddItem() {
+		$queue = new EphemeralQueueStore();
+		$queue->add("Job A");
+		$queue->add("Job B");
+		$queue->add("Job C");
+
+		$this->assertSame(3, $queue->size());
+	}
+	/*
 	$queue->add("Job A");
 	$queue->add("Job B");
 	$queue->add("Job C");

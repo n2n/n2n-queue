@@ -30,12 +30,14 @@
     },
 	"autoload" : {
 		"psr-4" : {
-			"n2n\\queue\\" : "src/app/n2n/queue"
+			"n2n\\queue\\" : "src/app/n2n/queue",
+			"n2n\\ephemeral\\" : "src/app/n2n/ephemeral"
 		}
 	},
 	"autoload-dev" : {
 		"psr-4" : {
-			"n2n\\queue\\": "src/test/n2n/queue"
+			"n2n\\queue\\": "src/test/n2n/queue",
+            "n2n\\ephemeral\\" : "src/test/n2n/ephemeral"
 		}
 	},
 	"require-dev" : {

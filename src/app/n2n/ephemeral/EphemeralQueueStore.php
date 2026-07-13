@@ -15,7 +15,9 @@ class EphemeralQueueStore implements QueueStore {
 	private array $ready = [];
 	private array $processing = [];
 	private int $nextId = 1;
+	function __construct() {
 
+	}
 	/**
 	 * @inheritDoc
 	 */
