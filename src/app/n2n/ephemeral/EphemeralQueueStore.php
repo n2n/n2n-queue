@@ -41,7 +41,9 @@ class EphemeralQueueStore implements QueueStore {
 
 		$this->processing[$message['id']] = $message;
 
-		return $message;
+		return new EphemeralPolledItemRef($message['id']);
+
+		// return $message;
 	}
 
 	/**
@@ -49,7 +51,8 @@ class EphemeralQueueStore implements QueueStore {
 	 */
 	function addAndPoll(mixed $data): ?PolledItemRef {
 		$this->add($data);
-		return $this->poll();
+		$this->poll();
+		return new EphemeralPolledItemRef($data);
 	}
 
 	/**
