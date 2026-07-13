@@ -59,4 +59,41 @@ class EphemeralQueueStore implements QueueStore {
 		$this->ready = [];
 		$this->processing = [];
 	}
+
+
+
+
+
+	public function acknowledge(int $id): bool {
+		if (!isset($this->processing[$id])) {
+			return false;
+		}
+
+		unset($this->processing[$id]);
+
+		return true;
+	}
+
+	public function reject(int $id): bool {
+		if (!isset($this->processing[$id])) {
+			return false;
+		}
+
+		$message = $this->processing[$id];
+		unset($this->processing[$id]);
+
+		// Put back at the end of the queue
+		$this->ready[] = $message;
+
+		return true;
+	}
+
+
+	public function size(): int {
+		return count($this->ready);
+	}
+
+	public function processingCount(): int {
+		return count($this->processing);
+	}
 }
