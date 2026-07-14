@@ -6,6 +6,10 @@ use n2n\queue\PolledItemRef;
 
 class EphemeralPolledItemRef implements PolledItemRef {
 
+	private EphemeralPolledItemRef $item;
+
+	
+
 	function __construct(public mixed $data) {
 	}
 

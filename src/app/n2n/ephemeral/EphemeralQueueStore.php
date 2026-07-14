@@ -7,98 +7,35 @@ use n2n\queue\PolledItemRef;
 
 class EphemeralQueueStore implements QueueStore {
 
-	/**
-	 * ChatGPT search for "implement Queue in PHP with add poll clear acknoledge reject"
-	 * https://chatgpt.com/s/t_6a50e93f68c88191b0ef4613f4e6cee1
-	 */
+	public $items;
 
-	private array $ready = [];
-	private array $processing = [];
-	private int $nextId = 1;
 	function __construct() {
-
+		$this->items = array();
 	}
-	/**
-	 * @inheritDoc
-	 */
+
 	function add(mixed $data): void {
-		$id = $this->nextId++;
-
-		$this->ready[] = [
-				'id' => $id,
-				'payload' => $data,
-		];
+		// TODO: Implement add() method.
+		$this->items[] = new EphemeralQueueItem($data);
 	}
 
-	/**
-	 * @inheritDoc
-	 */
 	function poll(): ?PolledItemRef {
-		if (empty($this->ready)) {
-			return null;
-		}
+		// TODO: Implement poll() method.
 
-		// get first element of ready array and remove it.
-		$message = array_shift($this->ready);
-
-		$this->processing[$message['id']] = $message;
-
-		return new EphemeralPolledItemRef($message['id']);
-
-		// return $message;
+		$firstItem = $this->items[0];
+		return $firstItem->ack();
+		//return array_shift($this->items);
 	}
 
-	/**
-	 * @inheritDoc
-	 */
 	function addAndPoll(mixed $data): ?PolledItemRef {
+		// TODO: Implement addAndPoll() method.
+
 		$this->add($data);
-		$this->poll();
-		return new EphemeralPolledItemRef($data);
+		$poll = $this->poll();
+		return $poll;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
 	function clear(): void {
-		$this->ready = [];
-		$this->processing = [];
-	}
-
-
-
-
-
-	public function acknowledge(int $id): bool {
-		if (!isset($this->processing[$id])) {
-			return false;
-		}
-
-		unset($this->processing[$id]);
-
-		return true;
-	}
-
-	public function reject(int $id): bool {
-		if (!isset($this->processing[$id])) {
-			return false;
-		}
-
-		$message = $this->processing[$id];
-		unset($this->processing[$id]);
-
-		// Put back at the end of the queue
-		$this->ready[] = $message;
-
-		return true;
-	}
-
-
-	public function size(): int {
-		return count($this->ready);
-	}
-
-	public function processingCount(): int {
-		return count($this->processing);
+		// TODO: Implement clear() method.
+		$this->items = array();
 	}
 }
