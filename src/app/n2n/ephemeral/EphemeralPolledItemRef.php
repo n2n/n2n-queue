@@ -8,7 +8,6 @@ class EphemeralPolledItemRef implements PolledItemRef {
 
 	private EphemeralQueueItem $item;
 
-
 	function __construct(public mixed $data) {
 	}
 
@@ -17,6 +16,9 @@ class EphemeralPolledItemRef implements PolledItemRef {
 	 */
 	function ack(): void {
 		// TODO: Implement ack() method.
+		/* if(!$this->item->processing && !$this->item->disposed) {
+			$this->item->dispose();
+		} */
 	}
 
 	/**
@@ -24,6 +26,12 @@ class EphemeralPolledItemRef implements PolledItemRef {
 	 */
 	function reject(bool $requeue = false): void {
 		// TODO: Implement reject() method.
+		if($requeue == false) {
+			$this->ack();
+		} else {
+			// TODO: put message back in queue
+			return;
+		}
 	}
 
 	function __destruct() {
