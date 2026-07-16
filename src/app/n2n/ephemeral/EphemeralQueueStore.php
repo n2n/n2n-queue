@@ -14,20 +14,19 @@ class EphemeralQueueStore implements QueueStore {
 	}
 
 	function add(mixed $data): void {
-		// TODO: Implement add() method.
 		$this->items[] = new EphemeralQueueItem($data);
 	}
 
 	function poll(): ?PolledItemRef {
-		// TODO: Implement poll() method.
 
-		$firstItem = $this->items[0];
-		return $firstItem->ack();
-		//return array_shift($this->items);
+		//$firstItem = $this->items[0];
+		$firstItem = array_shift($this->items);
+		//$firstItem->ack();
+		//return $firstItem;
+		return new EphemeralPolledItemRef($firstItem);
 	}
 
 	function addAndPoll(mixed $data): ?PolledItemRef {
-		// TODO: Implement addAndPoll() method.
 
 		$this->add($data);
 		$poll = $this->poll();
@@ -35,7 +34,6 @@ class EphemeralQueueStore implements QueueStore {
 	}
 
 	function clear(): void {
-		// TODO: Implement clear() method.
 		$this->items = array();
 	}
 }

@@ -6,9 +6,8 @@ use n2n\queue\PolledItemRef;
 
 class EphemeralPolledItemRef implements PolledItemRef {
 
-	private EphemeralPolledItemRef $item;
+	private EphemeralQueueItem $item;
 
-	
 
 	function __construct(public mixed $data) {
 	}
@@ -28,6 +27,7 @@ class EphemeralPolledItemRef implements PolledItemRef {
 	}
 
 	function __destruct() {
+		//$this->item->dispose();
 		/* if ($this->isActive()) {
 			$this->reject(true);
 		}*/
