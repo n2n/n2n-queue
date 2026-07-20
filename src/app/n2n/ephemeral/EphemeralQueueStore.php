@@ -4,10 +4,14 @@ namespace n2n\ephemeral;
 
 use n2n\queue\QueueStore;
 use n2n\queue\PolledItemRef;
+use n2n\util\col\ArrayUtils;
 
 class EphemeralQueueStore implements QueueStore {
 
-	public $items;
+	/**
+	 * @var EphemeralQueueItem[]
+	 */
+	private array $items;
 
 	function __construct() {
 		$this->items = array();
@@ -18,12 +22,24 @@ class EphemeralQueueStore implements QueueStore {
 	}
 
 	function poll(): ?PolledItemRef {
+		foreach ($this->items as $item) {
+			if ($item->processing) {
+				continue;
+			}
+
+			$item->processing = true;
+			return new EphemeralPolledItemRef($item,
+					fn () => $item->processing = false,
+					fn () => ArrayUtils::unsetByValue($this->items, $item));
+		}
+
+		return null;
 
 		//$firstItem = $this->items[0];
-		$firstItem = array_shift($this->items);
+//		$firstItem = array_shift($this->items);
 		//$firstItem->ack();
 		//return $firstItem;
-		return new EphemeralPolledItemRef($firstItem);
+
 	}
 
 	function addAndPoll(mixed $data): ?PolledItemRef {

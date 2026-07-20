@@ -3,18 +3,36 @@
 namespace n2n\ephemeral;
 
 use n2n\queue\PolledItemRef;
+use n2n\util\ex\IllegalStateException;
 
 class EphemeralPolledItemRef implements PolledItemRef {
 
-	private EphemeralQueueItem $item;
 
-	function __construct(public mixed $data) {
+	function __construct(private EphemeralQueueItem $item,
+			private \Closure $requeueCallback, private \Closure $removeCallback) {
+		IllegalStateException::assertTrue($item->processing);
+	}
+
+	public mixed $data {
+		get => $this->item->data;
+	}
+
+	private function ensureProcessing(): void {
+		if ($this->item->processing) {
+			return;
+		}
+
+		throw new IllegalStateException('Cannot ack() or reject() item which is already acked or rejected.');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	function ack(): void {
+		$this->ensureProcessing();
+
+		$this->removeCallback->__invoke();
+
 		// TODO: Implement ack() method.
 		/* if(!$this->item->processing && !$this->item->disposed) {
 			$this->item->dispose();
@@ -25,6 +43,8 @@ class EphemeralPolledItemRef implements PolledItemRef {
 	 * @inheritDoc
 	 */
 	function reject(bool $requeue = false): void {
+		$this->ensureProcessing();
+
 		// TODO: Implement reject() method.
 		if($requeue == false) {
 			$this->ack();
