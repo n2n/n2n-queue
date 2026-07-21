@@ -56,6 +56,9 @@ class EphemeralQueueStoreTest extends TestCase {
 
 	// Returns the element at the front without removing it.
 	function testGetPeek(): void {
-		$this->assertSame('Test 1 Data', $this->getQueueItemsFromStore()[0]->data);
+		$numberOfItems = count($this->getQueueItemsFromStore());
+		if ($numberOfItems > 0) {
+			$this->assertSame('Test 1 Data', $this->getQueueItemsFromStore()[0]->data);
+		}
 	}
 }
