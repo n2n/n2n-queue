@@ -50,6 +50,7 @@ class EphemeralPolledItemRef implements PolledItemRef {
 			$this->ack();
 		} else {
 			// TODO: put message back in queue
+			$this->requeueCallback->__invoke();
 			return;
 		}
 	}

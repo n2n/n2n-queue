@@ -18,14 +18,7 @@ class EphemeralQueueItem {
 		$disposed = true;
 	}
 
-	/*
-	 * https://www.geeksforgeeks.org/system-design/observer-pattern-set-1-introduction/
-	 * https://refactoring.guru/design-patterns/observer
-	 *
-	 * https://chatgpt.com/s/t_6a58dfd42e388191b1547f207ddd7436
-	 */
 	static function registerDisposedCallback(Closure $closure) {
 		self::dispose();
 	}
-
 }
