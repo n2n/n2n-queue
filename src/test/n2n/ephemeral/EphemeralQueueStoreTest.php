@@ -8,7 +8,7 @@ use ReflectionObject;
 
 class EphemeralQueueStoreTest extends TestCase {
 
-	private $store;
+	private EphemeralQueueStore $store;
 
 	function setUp():void {
 		$store = new EphemeralQueueStore();
