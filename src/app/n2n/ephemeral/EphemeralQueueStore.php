@@ -37,11 +37,6 @@ class EphemeralQueueStore implements QueueStore {
 
 		return null;
 
-		//$firstItem = $this->items[0];
-//		$firstItem = array_shift($this->items);
-		//$firstItem->ack();
-		//return $firstItem;
-
 	}
 
 	function addAndPoll(mixed $data): ?PolledItemRef {

@@ -31,6 +31,11 @@ class EphemeralQueueStoreTest extends TestCase {
 	function testPollFromQueue(): void {
 		$polledItemRef = $this->store->poll();
 		$this->assertSame(2, count($this->getQueueItemsFromStore()));
+
+		$polledItemRef = $this->store->poll();
+		$this->assertSame(1, count($this->getQueueItemsFromStore()));
+
+		$this->assertSame('Test 3 Data', $this->getQueueItemsFromStore()[2]->data);
 	}
 
 	function testAddAndPollFromQueue(): void {
