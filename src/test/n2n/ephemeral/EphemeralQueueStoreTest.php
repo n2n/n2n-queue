@@ -4,7 +4,6 @@ namespace n2n\ephemeral;
 
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
-use ReflectionObject;
 
 class EphemeralQueueStoreTest extends TestCase {
 
@@ -35,7 +34,7 @@ class EphemeralQueueStoreTest extends TestCase {
 		$polledItemRef = $this->store->poll();
 		$this->assertSame(1, count($this->getQueueItemsFromStore()));
 
-		// array_reverse and array_pop to get first item of array.
+		// array_reverse and array_pop to get first item of array (ignoring unset items in array).
 		$reversedItems = array_reverse($this->getQueueItemsFromStore());
 		$firstItem = array_pop($reversedItems);
 		$this->assertSame('Test 3 Data', $firstItem->data);
