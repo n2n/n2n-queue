@@ -35,7 +35,10 @@ class EphemeralQueueStoreTest extends TestCase {
 		$polledItemRef = $this->store->poll();
 		$this->assertSame(1, count($this->getQueueItemsFromStore()));
 
-		$this->assertSame('Test 3 Data', $this->getQueueItemsFromStore()[2]->data);
+		// array_reverse and array_pop to get first item of array.
+		$reversedItems = array_reverse($this->getQueueItemsFromStore());
+		$firstItem = array_pop($reversedItems);
+		$this->assertSame('Test 3 Data', $firstItem->data);
 	}
 
 	function testAddAndPollFromQueue(): void {
