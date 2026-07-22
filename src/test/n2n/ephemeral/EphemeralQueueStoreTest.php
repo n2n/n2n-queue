@@ -17,20 +17,6 @@ class EphemeralQueueStoreTest extends TestCase {
 		$this->store = $store;
 	}
 
-	// get items variable from store by reflection (because variable is private).
-	function getQueueItemsFromStore() {
-		$reflectionClass = new ReflectionClass('n2n\ephemeral\EphemeralQueueStore');
-		$reflectionProperty = $reflectionClass->getProperty('items');
-		return $reflectionProperty->getValue($this->store);
-	}
-
-	function getFirstItemFromQueue() {
-		// array_reverse and array_pop to get first item of array (ignoring unset items in array).
-		$reversedItems = array_reverse($this->getQueueItemsFromStore());
-		$firstItem = array_pop($reversedItems);
-		return $firstItem;
-	}
-
 	function testAddNewItemToQueue(): void {
 		$this->assertSame(3, count($this->getQueueItemsFromStore()));
 	}
@@ -64,9 +50,23 @@ class EphemeralQueueStoreTest extends TestCase {
 
 	// Returns the element at the front without removing it.
 	function testGetPeek(): void {
-		$numberOfItems = count($this->getQueueItemsFromStore());
-		if ($numberOfItems > 0) {
-			$this->assertSame('Test 1 Data', $this->getQueueItemsFromStore()[0]->data);
-		}
+		$this->assertSame('Test 1 Data', $this->getFirstItemFromQueue()->data);
+
+		$polledItemRef = $this->store->poll();
+		$this->assertSame('Test 2 Data', $this->getFirstItemFromQueue()->data);
+	}
+
+	// get items variable from store by reflection (because variable is private).
+	function getQueueItemsFromStore() {
+		$reflectionClass = new ReflectionClass('n2n\ephemeral\EphemeralQueueStore');
+		$reflectionProperty = $reflectionClass->getProperty('items');
+		return $reflectionProperty->getValue($this->store);
+	}
+
+	function getFirstItemFromQueue() {
+		// array_reverse and array_pop to get first item of array (ignoring unset items in array).
+		$reversedItems = array_reverse($this->getQueueItemsFromStore());
+		$firstItem = array_pop($reversedItems);
+		return $firstItem;
 	}
 }
