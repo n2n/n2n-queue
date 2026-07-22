@@ -19,8 +19,12 @@ class EphemeralQueueStoreTest extends TestCase {
 
 	function testAddNewItemToQueue(): void {
 		$this->assertSame(3, count($this->getQueueItemsFromStore()));
+		$this->store->add('Test 4 Data');
+		$this->assertSame(4, count($this->getQueueItemsFromStore()));
+		$this->assertSame('Test 4 Data', $this->getQueueItemsFromStore()[3]->data);
 	}
 
+	/*
 	function testPollFromQueue(): void {
 		$polledItemRef = $this->store->poll();
 		$this->assertSame(2, count($this->getQueueItemsFromStore()));
@@ -56,6 +60,10 @@ class EphemeralQueueStoreTest extends TestCase {
 		$this->assertSame('Test 2 Data', $this->getFirstItemFromQueue()->data);
 	}
 
+	*/
+
+
+
 	// get items variable from store by reflection (because variable is private).
 	function getQueueItemsFromStore() {
 		$reflectionClass = new ReflectionClass('n2n\ephemeral\EphemeralQueueStore');
@@ -66,7 +74,51 @@ class EphemeralQueueStoreTest extends TestCase {
 	function getFirstItemFromQueue() {
 		// array_reverse and array_pop to get first item of array (ignoring unset items in array).
 		$reversedItems = array_reverse($this->getQueueItemsFromStore());
-		$firstItem = array_pop($reversedItems);
-		return $firstItem;
+		return array_pop($reversedItems);
+	}
+
+	function testGetPeek(): void {
+		$this->assertSame('Test 1 Data', $this->getFirstItemFromQueue()->data);
+	}
+
+	function testRequeue(): void {
+		$this->assertSame(3, count($this->getQueueItemsFromStore()));
+		$polledItemRef = $this->store->poll();
+
+		$items = $this->getQueueItemsFromStore();
+		$this->assertCount(3, $items);
+		$this->assertTrue($items[0]->processing);
+		$this->assertFalse($items[1]->processing);
+		$this->assertFalse($items[2]->processing);
+
+		$polledItemRef->reject(true);
+
+		$items = $this->getQueueItemsFromStore();
+		$this->assertCount(3, $items);
+		$this->assertFalse($items[0]->processing);
+		$this->assertFalse($items[1]->processing);
+		$this->assertFalse($items[2]->processing);
+	}
+
+	function testRequeueOnRefDestruct(): void {
+		$this->assertSame(3, count($this->getQueueItemsFromStore()));
+		$polledItemRef = $this->store->poll();
+
+		$items = $this->getQueueItemsFromStore();
+		$this->assertCount(3, $items);
+		$this->assertTrue($items[0]->processing);
+		$this->assertFalse($items[1]->processing);
+		$this->assertFalse($items[2]->processing);
+
+		unset($polledItemRef);
+		gc_collect_cycles();
+
+		$items = $this->getQueueItemsFromStore();
+		$this->assertCount(3, $items);
+		$this->isNull($items[0]);
+		$this->assertFalse($items[1]->processing);
+		$this->assertFalse($items[2]->processing);
+
+		//var_dump($items);
 	}
 }

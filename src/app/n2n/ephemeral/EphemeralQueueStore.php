@@ -31,7 +31,6 @@ class EphemeralQueueStore implements QueueStore {
 			$itemRef = new EphemeralPolledItemRef($item,
 					fn () => $item->processing = false,
 					fn () => ArrayUtils::unsetByValue($this->items, $item));
-			$itemRef->ack();
 			return $itemRef;
 		}
 

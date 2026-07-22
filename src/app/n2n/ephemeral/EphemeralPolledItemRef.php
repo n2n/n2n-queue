@@ -32,11 +32,6 @@ class EphemeralPolledItemRef implements PolledItemRef {
 		$this->ensureProcessing();
 
 		$this->removeCallback->__invoke();
-
-		// TODO: Implement ack() method.
-		/* if(!$this->item->processing && !$this->item->disposed) {
-			$this->item->dispose();
-		} */
 	}
 
 	/**
@@ -45,13 +40,10 @@ class EphemeralPolledItemRef implements PolledItemRef {
 	function reject(bool $requeue = false): void {
 		$this->ensureProcessing();
 
-		// TODO: Implement reject() method.
-		if($requeue == false) {
-			$this->ack();
+		if ($requeue == false) {
+			$this->removeCallback->__invoke();
 		} else {
-			// TODO: put message back in queue
 			$this->requeueCallback->__invoke();
-			return;
 		}
 	}
 
