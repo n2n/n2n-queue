@@ -21,12 +21,15 @@ use n2n\queue\QueueStore;
 use n2n\util\io\fs\FsPath;
 use n2n\queue\PolledItemRef;
 use n2n\concurrency\sync\impl\Sync;
-use n2n\concurrency\sync\LockMode;
 use n2n\util\StringUtils;
 use n2n\util\io\fs\FsPerm;
 use n2n\util\ex\ExUtils;
 use n2n\concurrency\sync\impl\fs\FileLock;
+use n2n\util\serialize\SerializationUtils;
 
+/**
+ * File based queue. Data will be serialized by {@link SerializationUtils::strictObjSerialize()} and written to a file.
+ */
 class FileQueueStore implements QueueStore {
 
 	const LOCK_FOLDER = 'lock';
@@ -37,7 +40,14 @@ class FileQueueStore implements QueueStore {
 	private FsPath $dataDirFsPath;
 	private FsPath $lockDirFsPath;
 
-    function __construct(FsPath $dirFsPath, private FsPerm|string|int|null $filePerm = null) {
+	/**
+	 * @param FsPath $dirFsPath
+	 * @param FsPerm|string|int|null $filePerm
+	 * @param string|null $dataClassName used for {@link SerializationUtils::strictObjSerialize()} and
+	 * 		{@link SerializationUtils::strictObjUnserialize()}
+	 */
+    function __construct(FsPath $dirFsPath, private FsPerm|string|int|null $filePerm = null,
+			?string $dataClassName = null) {
 		$this->dataDirFsPath = $dirFsPath->ext(self::DATA_FOLDER);
 		$this->lockDirFsPath = $dirFsPath->ext(self::LOCK_FOLDER);
     }

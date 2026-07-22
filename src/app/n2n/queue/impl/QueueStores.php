@@ -25,7 +25,16 @@ use n2n\queue\impl\fs\FileQueueStore;
 
 class QueueStores {
 
-	static function file(FsPath $dirPath, FsPerm $filePerm = null): QueueStore {
+	/**
+	 * @see FileQueueStore for more information.
+	 *
+	 * @param FsPath $dirPath
+	 * @param FsPerm|null $filePerm
+	 * @param string|null $dataClassName used for {@link SerializationUtils::strictObjSerialize()} and
+	 *        {@link SerializationUtils::strictObjUnserialize()}
+	 * @return QueueStore
+	 */
+	static function file(FsPath $dirPath, FsPerm $filePerm = null, ?string $dataClassName = null): QueueStore {
 		return new FileQueueStore($dirPath, $filePerm);
 	}
 
