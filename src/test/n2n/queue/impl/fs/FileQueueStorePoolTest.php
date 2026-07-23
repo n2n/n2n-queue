@@ -47,8 +47,8 @@ class FileQueueStorePoolTest extends TestCase {
 	function testClear() {
 		$pool = QueueStorePools::file($this->tempDirFsPath, 0777, 0777);
 
-		$pool->lookupQueueStore('ns\\ns1', 'string')->add(['prop' => 'huii']);
-		$pool->lookupQueueStore('ns\\ns2', 'string')->add(['prop' => 'huii']);
+		$pool->lookupQueueStore('ns\\ns1', 'string')->add('huii');
+		$pool->lookupQueueStore('ns\\ns2', 'string')->add('huii');
 
 		$this->assertCount(2, $this->tempDirFsPath->getChildren());
 

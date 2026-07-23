@@ -40,7 +40,7 @@ class FileQueueStorePool implements QueueStorePool {
 			}
 		}
 
-		return new FileQueueStore($dirFsPath, $this->filePerm);
+		return new FileQueueStore($typeName, $dirFsPath, $this->filePerm);
 	}
 
 	public function clear(): void {

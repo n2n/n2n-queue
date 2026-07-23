@@ -26,9 +26,16 @@ use n2n\util\io\fs\FsPerm;
 use n2n\util\ex\ExUtils;
 use n2n\concurrency\sync\impl\fs\FileLock;
 use n2n\util\serialize\SerializationUtils;
+use n2n\util\serialize\ex\TypeNotSupportedForSerializationException;
+use n2n\util\ex\IllegalStateException;
+use n2n\util\ex\err\ConfigurationError;
+use n2n\util\serialize\ex\UnserializationFailedException;
 
 /**
  * File based queue. Data will be serialized by {@link SerializationUtils::strictObjSerialize()} and written to a file.
+ *
+ * @template T
+ * @extends QueueStore<T>
  */
 class FileQueueStore implements QueueStore {
 
@@ -37,16 +44,18 @@ class FileQueueStore implements QueueStore {
     const DATA_FILE_SUFFIX = '.dat';
 	const LOCK_FILE_SUFFIX = '.lock';
 
+
 	private FsPath $dataDirFsPath;
 	private FsPath $lockDirFsPath;
 
 	/**
+	 * @param class-string<T> $typeName
 	 * @param FsPath $dirFsPath
 	 * @param FsPerm|string|int|null $filePerm
 	 * @param string|null $dataClassName used for {@link SerializationUtils::strictObjSerialize()} and
 	 * 		{@link SerializationUtils::strictObjUnserialize()}
 	 */
-    function __construct(FsPath $dirFsPath, private FsPerm|string|int|null $filePerm = null,
+    function __construct(private string $typeName, FsPath $dirFsPath, private FsPerm|string|int|null $filePerm = null,
 			?string $dataClassName = null) {
 		$this->dataDirFsPath = $dirFsPath->ext(self::DATA_FOLDER);
 		$this->lockDirFsPath = $dirFsPath->ext(self::LOCK_FOLDER);
@@ -79,9 +88,12 @@ class FileQueueStore implements QueueStore {
 
 	private function putContents(FsPath $fileFsPath, mixed $data): void {
 		try {
-			IoUtils::putContents($fileFsPath, serialize($data));
+			IoUtils::putContents($fileFsPath, SerializationUtils::checkedStrictSerialize($data, $this->typeName));
 		} catch (IoException $e) {
 			throw new QueueOperationFailedException(previous: $e);
+		} catch (TypeNotSupportedForSerializationException $e) {
+			throw new ConfigurationError(static::class . ' does not support type ' . $this->typeName
+					. ' Reason: ' . $e->getMessage(), previous: $e);
 		}
 
 		if ($this->filePerm !== null) {
@@ -118,9 +130,12 @@ class FileQueueStore implements QueueStore {
 
 	private function createPolledItemRef(FsPath $fsPath, FileLock $fileLock): PolledItemRef {
 		try {
-			$data = StringUtils::unserialize(IoUtils::getContents($fsPath));
-		} catch (IoException $e) {
+			$data = SerializationUtils::checkedStrictUnserialize(IoUtils::getContents($fsPath), $this->typeName);
+		} catch (IoException|UnserializationFailedException $e) {
 			throw new QueueOperationFailedException(previous: $e);
+		} catch (TypeNotSupportedForSerializationException $e) {
+			throw new ConfigurationError(static::class . ' does not support type ' . $this->typeName
+					. ' Reason: ' . $e->getMessage(), previous: $e);
 		}
 
 		return new FilePolledItemRef($fsPath, $fileLock, $data);
