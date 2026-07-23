@@ -81,7 +81,7 @@ class EphemeralQueueStoreTest extends TestCase {
 		$this->assertSame('Test 1 Data', $this->getFirstItemFromQueue()->data);
 	}
 
-	function testRemoveItemFromQueue(): void {
+	function testPollItemFromQueue(): void {
 		$this->assertSame(3, count($this->getQueueItemsFromStore()));
 		$polledItemRef = $this->store->poll();
 
@@ -135,7 +135,7 @@ class EphemeralQueueStoreTest extends TestCase {
 
 		$items = $this->getQueueItemsFromStore();
 		$this->assertCount(3, $items);
-		$this->isNull($items[0]);
+		$this->assertTrue($items[0]->processing);
 		$this->assertFalse($items[1]->processing);
 		$this->assertFalse($items[2]->processing);
 	}
