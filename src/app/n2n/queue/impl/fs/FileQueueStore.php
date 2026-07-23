@@ -30,6 +30,7 @@ use n2n\util\serialize\ex\TypeNotSupportedForSerializationException;
 use n2n\util\ex\IllegalStateException;
 use n2n\util\ex\err\ConfigurationError;
 use n2n\util\serialize\ex\UnserializationFailedException;
+use n2n\util\type\TypeUtils;
 
 /**
  * File based queue. Data will be serialized by {@link SerializationUtils::strictObjSerialize()} and written to a file.
@@ -90,10 +91,13 @@ class FileQueueStore implements QueueStore {
 		}
     }
 
-	private function putContents(FsPath $fileFsPath, mixed $data): void {
+	private function putContents(FsPath $fileFsPath, mixed $data): mixed {
 		try {
-			IoUtils::putContents($fileFsPath, SerializationUtils::checkedStrictSerialize($data, $this->typeName));
-		} catch (IoException $e) {
+			$ser = SerializationUtils::checkedStrictSerialize($data, $this->typeName);
+			// it might be necessary to reject data if there are no unserializable, e.g. due to its size.
+			$data = SerializationUtils::checkedStrictUnserialize($ser, $this->typeName);
+			IoUtils::putContents($fileFsPath, $ser);
+		} catch (IoException|UnserializationFailedException $e) {
 			throw new QueueOperationFailedException(previous: $e);
 		} catch (TypeNotSupportedForSerializationException $e) {
 			throw new ConfigurationError(static::class . ' does not support type ' . $this->typeName
@@ -104,6 +108,21 @@ class FileQueueStore implements QueueStore {
 			ExUtils::try(fn () => $fileFsPath->chmod($this->filePerm));
 		}
 
+		return $data;
+	}
+
+	/**
+	 * @throws UnserializationFailedException
+	 */
+	private function readContents(FsPath $fileFsPath): mixed {
+		try {
+			return SerializationUtils::checkedStrictUnserialize(IoUtils::getContents($fileFsPath), $this->typeName);
+		} catch (IoException $e) {
+			throw new QueueOperationFailedException(previous: $e);
+		} catch (TypeNotSupportedForSerializationException $e) {
+			throw new ConfigurationError(static::class . ' does not support type ' . $this->typeName
+					. ' Reason: ' . $e->getMessage(), previous: $e);
+		}
 	}
 
 	function poll(): ?PolledItemRef {
@@ -134,29 +153,18 @@ class FileQueueStore implements QueueStore {
 		$fsPath = $this->createNewDataFsPath();
 		$fileLock = Sync::byFileLock($this->createLockFsPath($fsPath));
 		ExUtils::try(fn () => $fileLock->acquire());
-		$this->putContents($fsPath, $data);
-		try {
-			return $this->createPolledItemRef($fsPath, $fileLock);
-		} catch (UnserializationFailedException $e) {
-			throw new IllegalStateException($fsPath
-							. ' could not be unserialized after just writing it. Should be impossible.',
-					previous: $e);
-		}
+		$data = $this->putContents($fsPath, $data);
+
+
+		return $this->createPolledItemRef($fsPath, $fileLock);
+
 	}
 
 	/**
 	 * @throws UnserializationFailedException
 	 */
 	private function createPolledItemRef(FsPath $fsPath, FileLock $fileLock): PolledItemRef {
-		try {
-			$data = SerializationUtils::checkedStrictUnserialize(IoUtils::getContents($fsPath), $this->typeName);
-		} catch (IoException $e) {
-			throw new QueueOperationFailedException(previous: $e);
-		} catch (TypeNotSupportedForSerializationException $e) {
-			throw new ConfigurationError(static::class . ' does not support type ' . $this->typeName
-					. ' Reason: ' . $e->getMessage(), previous: $e);
-		}
-
+		$data = $this->readContents($fsPath);
 		return new FilePolledItemRef($fsPath, $fileLock, $data);
 	}
 

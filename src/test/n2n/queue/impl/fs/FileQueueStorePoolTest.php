@@ -50,11 +50,10 @@ class FileQueueStorePoolTest extends TestCase {
 		$pool->lookupQueueStore('ns\\ns1', 'string')->add('huii');
 		$pool->lookupQueueStore('ns\\ns2', 'string')->add('huii');
 
-		$this->assertCount(2, $this->tempDirFsPath->getChildren());
-
+		$pattern = '*' . DIRECTORY_SEPARATOR . FileQueueStore::DATA_FOLDER . DIRECTORY_SEPARATOR . '*';
+		$this->assertCount(2, $this->tempDirFsPath->getChildren($pattern));
 		$pool->clear();
-
-		$this->assertCount(0, $this->tempDirFsPath->getChildren());
+		$this->assertCount(0, $this->tempDirFsPath->getChildren($pattern));
 	}
 
 }

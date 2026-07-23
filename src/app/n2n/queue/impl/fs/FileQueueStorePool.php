@@ -44,7 +44,10 @@ class FileQueueStorePool implements QueueStorePool {
 	}
 
 	public function clear(): void {
-		$this->dirFsPath->delete();
+		foreach ($this->dirFsPath->getChildren() as $fsPath) {
+			(new FileQueueStore('any', $fsPath))->clear();
+		}
+
 	}
 
 }
