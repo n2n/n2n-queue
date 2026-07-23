@@ -16,12 +16,16 @@
 namespace n2n\queue;
 
 /**
- * Defines thread safe queue used by some n2n modules.
+ * Defines thread safe queue used by some n2n modules. The queue is expect to handle a single type
+ * of data. Data of other types must be rejected.
+ *
+ * @template T
  */
 interface QueueStore {
 
 	/**
 	 * Adds an item to the queue.
+	 * @param T $data
 	 */
 	function add(mixed $data): void;
 
@@ -29,7 +33,7 @@ interface QueueStore {
 	 * Polls an item from the queue. Items which were already polled and not yet handled with
 	 * {@link PolledItemRef::ack()} or {@link PolledItemRef::reject()}, will be skipped.
 	 *
-	 * @return PolledItemRef|null
+	 * @return PolledItemRef<T>|null
 	 */
 	function poll(): ?PolledItemRef;
 
@@ -37,8 +41,8 @@ interface QueueStore {
 	 * Adds an item like {@link self::add()} and returns a PolledItemRef for this exact item
 	 * as in {@link self::poll()} if this item was next in line to be polled.
 	 *
-	 * @param mixed $data
-	 * @return PolledItemRef|null
+	 * @param T $data
+	 * @return PolledItemRef<T>|null
 	 */
 	function addAndPoll(mixed $data): ?PolledItemRef;
 
