@@ -28,14 +28,16 @@ class QueueStores {
 	/**
 	 * @see FileQueueStore for more information.
 	 *
+	 * @template T
+	 * @param class-string<T> $typeName;
 	 * @param FsPath $dirPath
 	 * @param FsPerm|null $filePerm
 	 * @param string|null $dataClassName used for {@link SerializationUtils::strictObjSerialize()} and
 	 *        {@link SerializationUtils::strictObjUnserialize()}
-	 * @return QueueStore
+	 * @return QueueStore<T>
 	 */
-	static function file(FsPath $dirPath, FsPerm $filePerm = null, ?string $dataClassName = null): QueueStore {
-		return new FileQueueStore($dirPath, $filePerm);
+	static function file(string $typeName, FsPath $dirPath, FsPerm $filePerm = null, ?string $dataClassName = null): QueueStore {
+		return new FileQueueStore($typeName, $dirPath, $filePerm);
 	}
 
 }

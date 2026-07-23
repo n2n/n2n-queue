@@ -82,8 +82,11 @@ class FileQueueStore implements QueueStore {
 		$fsPath = $this->createNewDataFsPath();
 		$fileLock = Sync::byFileLock($this->createLockFsPath($fsPath));
 		ExUtils::try(fn () => $fileLock->acquire());
-		$this->putContents($fsPath, $data);
-		$fileLock->release();
+		try {
+			$this->putContents($fsPath, $data);
+		} finally {
+			$fileLock->release();
+		}
     }
 
 	private function putContents(FsPath $fileFsPath, mixed $data): void {
