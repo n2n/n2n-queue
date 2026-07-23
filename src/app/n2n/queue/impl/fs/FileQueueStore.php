@@ -82,6 +82,7 @@ class FileQueueStore implements QueueStore {
 		$fsPath = $this->createNewDataFsPath();
 		$fileLock = Sync::byFileLock($this->createLockFsPath($fsPath));
 		ExUtils::try(fn () => $fileLock->acquire());
+		// try finally theoretically not necessary because __destruct of FileLock would relaes lock on failure anyway.
 		try {
 			$this->putContents($fsPath, $data);
 		} finally {
