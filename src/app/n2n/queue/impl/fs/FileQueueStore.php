@@ -118,7 +118,13 @@ class FileQueueStore implements QueueStore {
 				continue;
 			}
 
-			return $this->createPolledItemRef($fsPath, $fileLock);
+			try {
+				return $this->createPolledItemRef($fsPath, $fileLock);
+			} catch (UnserializationFailedException $e) {
+				trigger_error(static::class . ': Corrupted file "' . $fsPath
+						. '" will be deleted due to unserialization error: ' . $e->getMessage());
+				$fsPath->delete();
+			}
 		}
 
 		return null;
@@ -129,13 +135,22 @@ class FileQueueStore implements QueueStore {
 		$fileLock = Sync::byFileLock($this->createLockFsPath($fsPath));
 		ExUtils::try(fn () => $fileLock->acquire());
 		$this->putContents($fsPath, $data);
-		return $this->createPolledItemRef($fsPath, $fileLock);
+		try {
+			return $this->createPolledItemRef($fsPath, $fileLock);
+		} catch (UnserializationFailedException $e) {
+			throw new IllegalStateException($fsPath
+							. ' could not be unserialized after just writing it. Should be impossible.',
+					previous: $e);
+		}
 	}
 
+	/**
+	 * @throws UnserializationFailedException
+	 */
 	private function createPolledItemRef(FsPath $fsPath, FileLock $fileLock): PolledItemRef {
 		try {
 			$data = SerializationUtils::checkedStrictUnserialize(IoUtils::getContents($fsPath), $this->typeName);
-		} catch (IoException|UnserializationFailedException $e) {
+		} catch (IoException $e) {
 			throw new QueueOperationFailedException(previous: $e);
 		} catch (TypeNotSupportedForSerializationException $e) {
 			throw new ConfigurationError(static::class . ' does not support type ' . $this->typeName
