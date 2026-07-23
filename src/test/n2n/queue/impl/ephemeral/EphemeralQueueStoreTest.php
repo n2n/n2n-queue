@@ -118,7 +118,22 @@ class EphemeralQueueStoreTest extends TestCase {
 	}
 
 	function testAsyncPoll(): void {
+		$polledItemRef1 = $this->store->poll();
+		$polledItemRef2 = $this->store->poll();
+		$polledItemRef3 = $this->store->poll();
+		$polledItemRef1->ack();
+		$polledItemRef2->ack();
 
+		$items = $this->getQueueItemsFromStore();
+		$this->assertCount(1, $items);
+
+		$polledItemRef3->ack();
+		$items = $this->getQueueItemsFromStore();
+		$this->assertCount(0, $items);
+
+		$polledItemRef4 = $this->store->poll();
+		$this->assertNull($polledItemRef4);
+		//$polledItemRef4->ack();
 	}
 
 	function testRequeue(): void {
