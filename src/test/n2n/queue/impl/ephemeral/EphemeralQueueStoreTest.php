@@ -81,7 +81,7 @@ class EphemeralQueueStoreTest extends TestCase {
 		$this->assertSame('Test 1 Data', $this->getFirstItemFromQueue()->data);
 	}
 
-	function testPollItemFromQueue(): void {
+	function testSequentialPollAndAck(): void {
 		$this->assertSame(3, count($this->getQueueItemsFromStore()));
 		$polledItemRef = $this->store->poll();
 
@@ -90,6 +90,7 @@ class EphemeralQueueStoreTest extends TestCase {
 		$this->assertTrue($items[0]->processing);
 		$this->assertFalse($items[1]->processing);
 		$this->assertFalse($items[2]->processing);
+		$this->assertSame('Test 1 Data', $polledItemRef->data);
 
 		$polledItemRef->ack();
 
@@ -98,6 +99,25 @@ class EphemeralQueueStoreTest extends TestCase {
 		$this->assertFalse(isset($items[0]));
 		$this->assertFalse($items[1]->processing);
 		$this->assertFalse($items[2]->processing);
+
+		$polledItemRef = $this->store->poll();
+		$this->assertSame('Test 2 Data', $polledItemRef->data);
+
+		$items = $this->getQueueItemsFromStore();
+		$this->assertCount(2, $items);
+		$this->assertFalse(isset($items[0]));
+		$this->assertTrue($items[1]->processing);
+		$this->assertFalse($items[2]->processing);
+
+		$polledItemRef->ack();
+
+		$items = $this->getQueueItemsFromStore();
+		$this->assertCount(1, $items);
+		$this->assertFalse(isset($items[1]));
+		$this->assertFalse($items[2]->processing);
+	}
+
+	function testAsyncPoll(): void {
 
 	}
 
@@ -135,7 +155,7 @@ class EphemeralQueueStoreTest extends TestCase {
 
 		$items = $this->getQueueItemsFromStore();
 		$this->assertCount(3, $items);
-		$this->assertTrue($items[0]->processing);
+		$this->assertFalse($items[0]->processing);
 		$this->assertFalse($items[1]->processing);
 		$this->assertFalse($items[2]->processing);
 	}
