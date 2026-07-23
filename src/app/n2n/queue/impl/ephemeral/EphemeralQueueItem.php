@@ -1,6 +1,6 @@
 <?php
 
-namespace n2n\ephemeral;
+namespace n2n\queue\impl\ephemeral;
 
 use PhpParser\Node\Expr\Closure;
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace n2n\ephemeral;
+namespace n2n\queue\impl\ephemeral;
 
 use n2n\queue\PolledItemRef;
 use n2n\util\ex\IllegalStateException;

@@ -1,6 +1,6 @@
 <?php
 
-namespace n2n\ephemeral;
+namespace n2n\queue\impl\ephemeral;
 
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -66,7 +66,7 @@ class EphemeralQueueStoreTest extends TestCase {
 
 	// get items variable from store by reflection (because variable is private).
 	function getQueueItemsFromStore() {
-		$reflectionClass = new ReflectionClass('n2n\ephemeral\EphemeralQueueStore');
+		$reflectionClass = new ReflectionClass(EphemeralQueueStore::class);
 		$reflectionProperty = $reflectionClass->getProperty('items');
 		return $reflectionProperty->getValue($this->store);
 	}
