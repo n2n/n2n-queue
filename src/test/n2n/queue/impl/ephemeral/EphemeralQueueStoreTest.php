@@ -125,8 +125,8 @@ class EphemeralQueueStoreTest extends TestCase {
 		gc_collect_cycles();
 
 		$items = $this->getQueueItemsFromStore();
-		$this->assertCount(3, $items);
-		$this->assertFalse($items[0]->processing);
+		$this->assertCount(2, $items);
+		$this->assertFalse(isset($items[0]));
 		$this->assertFalse($items[1]->processing);
 		$this->assertFalse($items[2]->processing);
 	}

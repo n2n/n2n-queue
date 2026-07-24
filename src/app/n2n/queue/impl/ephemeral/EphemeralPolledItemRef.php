@@ -48,6 +48,9 @@ class EphemeralPolledItemRef implements PolledItemRef {
 	}
 
 	function __destruct() {
+		if($this->item->processing) {
+			$this->reject(false);
+		}
 		//$this->item->dispose();
 		/* if ($this->isActive()) {
 			$this->reject(true);
