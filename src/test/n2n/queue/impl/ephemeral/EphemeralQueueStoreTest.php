@@ -69,6 +69,7 @@ class EphemeralQueueStoreTest extends TestCase {
 
 		$items = $this->getQueueItemsFromStore();
 		$this->assertCount(1, $items);
+		$this->assertFalse(isset($items[0]));
 		$this->assertFalse(isset($items[1]));
 		$this->assertFalse($items[2]->processing);
 	}
@@ -79,6 +80,10 @@ class EphemeralQueueStoreTest extends TestCase {
 		$polledItemRef3 = $this->store->poll();
 		$polledItemRef1->ack();
 		$polledItemRef2->ack();
+
+		unset($polledItemRef1);
+		unset($polledItemRef2);
+		gc_collect_cycles();
 
 		$items = $this->getQueueItemsFromStore();
 		$this->assertCount(1, $items);
