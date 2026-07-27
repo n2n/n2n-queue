@@ -28,10 +28,12 @@ class EphemeralQueueStore implements QueueStore {
 			}
 
 			$item->processing = true;
-			$itemRef = new EphemeralPolledItemRef($item,
+			return new EphemeralPolledItemRef($item,
 					fn () => $item->processing = false,
-					fn () => ArrayUtils::unsetByValue($this->items, $item));
-			return $itemRef;
+					function () use ($item) {
+						$item->processing = false;
+						ArrayUtils::unsetByValue($this->items, $item);
+					});
 		}
 
 		return null;
@@ -41,8 +43,7 @@ class EphemeralQueueStore implements QueueStore {
 	function addAndPoll(mixed $data): ?PolledItemRef {
 
 		$this->add($data);
-		$poll = $this->poll();
-		return $poll;
+		return $this->poll();
 	}
 
 	function clear(): void {

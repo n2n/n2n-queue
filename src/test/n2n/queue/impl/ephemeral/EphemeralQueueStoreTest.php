@@ -4,6 +4,7 @@ namespace n2n\queue\impl\ephemeral;
 
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use n2n\util\ex\IllegalStateException;
 
 class EphemeralQueueStoreTest extends TestCase {
 
@@ -74,20 +75,16 @@ class EphemeralQueueStoreTest extends TestCase {
 		$this->assertFalse($items[2]->processing);
 	}
 
-	function testMultipleCallsOnPolledItemRef(): void {
+	function testAckCallOnAlreadyProcessedPolledItemRef(): void {
 		$items = $this->getQueueItemsFromStore();
 		$this->assertSame(3, count($items));
 
 		$polledItemRef = $this->store->poll();
 		$polledItemRef->ack();
-		$polledItemRef->ack();
-		/*
-		 * @todo calling multiple times ack() should throw exception.
-		 */
 
-		$items = $this->getQueueItemsFromStore();
-		$this->assertSame(2, count($items));
-		var_dump($items);
+		$this->expectException(IllegalStateException::class);
+		$this->expectExceptionMessageMatches('/already acked or rejected/');
+		$polledItemRef->ack();
 	}
 
 	function testAsyncPoll(): void {
