@@ -41,7 +41,6 @@ class EphemeralQueueStore implements QueueStore {
 	}
 
 	function addAndPoll(mixed $data): ?PolledItemRef {
-
 		$this->add($data);
 		return $this->poll();
 	}
