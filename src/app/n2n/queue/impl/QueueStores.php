@@ -36,8 +36,9 @@ class QueueStores {
 	 *        {@link SerializationUtils::strictObjUnserialize()}
 	 * @return QueueStore<T>
 	 */
-	static function file(string $typeName, FsPath $dirPath, FsPerm $filePerm = null, ?string $dataClassName = null): QueueStore {
-		return new FileQueueStore($typeName, $dirPath, $filePerm);
+	static function file(string $typeName, FsPath $dirPath, FsPerm $filePerm = null, ?string $dataClassName = null,
+			?int $maxItemSize = null): QueueStore {
+		return new FileQueueStore($typeName, $dirPath, $filePerm, null, $maxItemSize);
 	}
 
 }

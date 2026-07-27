@@ -25,7 +25,7 @@ use n2n\queue\QueueStore;
 class FileQueueStorePool implements QueueStorePool {
 
 	function __construct(private FsPath $dirFsPath, private FsPerm|string|int|null $dirPerm = null,
-			private FsPerm|string|int|null $filePerm = null) {
+			private FsPerm|string|int|null $filePerm = null, private ?int $maxItemSize = null) {
 
 	}
 
@@ -40,7 +40,7 @@ class FileQueueStorePool implements QueueStorePool {
 			}
 		}
 
-		return new FileQueueStore($typeName, $dirFsPath, $this->filePerm);
+		return new FileQueueStore($typeName, $dirFsPath, $this->filePerm, null, $this->maxItemSize);
 	}
 
 	public function clear(): void {

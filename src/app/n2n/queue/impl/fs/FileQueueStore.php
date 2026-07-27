@@ -55,9 +55,14 @@ class FileQueueStore implements QueueStore {
 	 * @param FsPerm|string|int|null $filePerm
 	 * @param string|null $dataClassName used for {@link SerializationUtils::strictObjSerialize()} and
 	 * 		{@link SerializationUtils::strictObjUnserialize()}
+	 * @param int|null $maxItemSize maximum serialized size of a single item in bytes; null disables the cap.
+	 * 		On {@see self::add()} an item exceeding it is rejected with a {@link QueueOperationFailedException}.
+	 * 		On {@see self::poll()} an oversized file is treated as corrupt (deleted) so it cannot exhaust
+	 * 		memory through {@see IoUtils::getContents()}. See {@link SerializationUtils} — input size must be
+	 * 		capped at the call site when data is untrusted.
 	 */
     function __construct(private string $typeName, FsPath $dirFsPath, private FsPerm|string|int|null $filePerm = null,
-			?string $dataClassName = null) {
+			?string $dataClassName = null, private ?int $maxItemSize = null) {
 		$this->dataDirFsPath = $dirFsPath->ext(self::DATA_FOLDER);
 		$this->lockDirFsPath = $dirFsPath->ext(self::LOCK_FOLDER);
     }
@@ -94,7 +99,12 @@ class FileQueueStore implements QueueStore {
 	private function putContents(FsPath $fileFsPath, mixed $data): mixed {
 		try {
 			$ser = SerializationUtils::checkedStrictSerialize($data, $this->typeName);
-			// it might be necessary to reject data if there are no unserializable, e.g. due to its size.
+			if ($this->maxItemSize !== null && strlen($ser) > $this->maxItemSize) {
+				throw new QueueOperationFailedException(sprintf(
+						'Item exceeds maxItemSize of %d bytes (serialized size %d bytes).',
+						$this->maxItemSize, strlen($ser)));
+			}
+			// round-trip to validate the item is (un)serializable for this type before committing it.
 			$data = SerializationUtils::checkedStrictUnserialize($ser, $this->typeName);
 			IoUtils::putContents($fileFsPath, $ser);
 		} catch (IoException|UnserializationFailedException $e) {
@@ -116,6 +126,13 @@ class FileQueueStore implements QueueStore {
 	 */
 	private function readContents(FsPath $fileFsPath): mixed {
 		try {
+			if ($this->maxItemSize !== null && $fileFsPath->getSize() > $this->maxItemSize) {
+				// Treat as corrupt so poll() deletes the oversized file rather than slurping it into
+				// memory via getContents().
+				throw new UnserializationFailedException(sprintf(
+						'Item exceeds maxItemSize of %d bytes (file size %d bytes).',
+						$this->maxItemSize, $fileFsPath->getSize()));
+			}
 			return SerializationUtils::checkedStrictUnserialize(IoUtils::getContents($fileFsPath), $this->typeName);
 		} catch (IoException $e) {
 			throw new QueueOperationFailedException(previous: $e);

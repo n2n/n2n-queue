@@ -20,6 +20,7 @@ use n2n\util\io\fs\FsPath;
 use n2n\cache\CharacteristicsList;
 use n2n\concurrency\sync\impl\fs\FileLock;
 use n2n\util\HashUtils;
+use n2n\queue\ex\QueueOperationFailedException;
 
 class FileQueueStoreTest extends TestCase {
 	private FsPath $tempDirFsPath;
@@ -158,6 +159,40 @@ class FileQueueStoreTest extends TestCase {
 
 		$this->assertCount(0, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
 		$this->assertCount(1, $this->tempDirFsPath->ext(FileQueueStore::DATA_FOLDER)->getChildren());
+	}
+
+	function testMaxItemSizeRejectsOversizedAdd() {
+		$queue = new FileQueueStore('string', $this->tempDirFsPath, 0777, null, 10);
+
+		$queue->add('short'); // '"short"' = 7 bytes, within the 10-byte cap
+		$this->assertCount(1, $this->tempDirFsPath->ext(FileQueueStore::DATA_FOLDER)->getChildren());
+
+		try {
+			$queue->add(str_repeat('x', 100)); // '"xxx..."' = 102 bytes, exceeds the cap
+			$this->fail('Expected QueueOperationFailedException for oversized item');
+		} catch (QueueOperationFailedException $e) {
+			$this->assertStringContainsString('maxItemSize', $e->getMessage());
+		}
+
+		// the rejected add must not leave a data file behind, and its lock must have been released
+		$this->assertCount(1, $this->tempDirFsPath->ext(FileQueueStore::DATA_FOLDER)->getChildren());
+		$this->assertCount(0, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
+	}
+
+	function testMaxItemSizeDeletesOversizedOnPoll() {
+		$queue = new FileQueueStore('string', $this->tempDirFsPath, 0777, null, 10);
+		$dataDir = $this->tempDirFsPath->ext(FileQueueStore::DATA_FOLDER);
+		$dataDir->mkdirs();
+
+		// plant an oversized file directly in the data dir (simulates a planted/runaway item)
+		$oversized = $dataDir->ext('oversized.dat');
+		file_put_contents((string) $oversized, str_repeat('x', 100));
+		$this->assertCount(1, $dataDir->getChildren());
+
+		// poll() must treat the oversized file as corrupt (delete it) rather than slurping it into memory
+		$this->assertNull(@$queue->poll());
+		$this->assertCount(0, $dataDir->getChildren());
+		$this->assertFalse(file_exists((string) $oversized));
 	}
 
 }
