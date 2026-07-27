@@ -74,6 +74,22 @@ class EphemeralQueueStoreTest extends TestCase {
 		$this->assertFalse($items[2]->processing);
 	}
 
+	function testMultipleCallsOnPolledItemRef(): void {
+		$items = $this->getQueueItemsFromStore();
+		$this->assertSame(3, count($items));
+
+		$polledItemRef = $this->store->poll();
+		$polledItemRef->ack();
+		$polledItemRef->ack();
+		/*
+		 * @todo calling multiple times ack() should throw exception.
+		 */
+
+		$items = $this->getQueueItemsFromStore();
+		$this->assertSame(2, count($items));
+		var_dump($items);
+	}
+
 	function testAsyncPoll(): void {
 		$polledItemRef1 = $this->store->poll();
 		$polledItemRef2 = $this->store->poll();
@@ -81,9 +97,10 @@ class EphemeralQueueStoreTest extends TestCase {
 		$polledItemRef1->ack();
 		$polledItemRef2->ack();
 
-		unset($polledItemRef1);
+		/*unset($polledItemRef1);
 		unset($polledItemRef2);
 		gc_collect_cycles();
+		*/
 
 		$items = $this->getQueueItemsFromStore();
 		$this->assertCount(1, $items);
