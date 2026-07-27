@@ -22,12 +22,23 @@ use n2n\queue\QueueStore;
 use n2n\util\io\fs\FsPath;
 use n2n\queue\PolledItemRef;
 use n2n\concurrency\sync\impl\Sync;
-use n2n\concurrency\sync\LockMode;
 use n2n\util\StringUtils;
 use n2n\util\io\fs\FsPerm;
 use n2n\util\ex\ExUtils;
 use n2n\concurrency\sync\impl\fs\FileLock;
+use n2n\util\serialize\SerializationUtils;
+use n2n\util\serialize\ex\TypeNotSupportedForSerializationException;
+use n2n\util\ex\IllegalStateException;
+use n2n\util\ex\err\ConfigurationError;
+use n2n\util\serialize\ex\UnserializationFailedException;
+use n2n\util\type\TypeUtils;
 
+/**
+ * File based queue. Data will be serialized by {@link SerializationUtils::strictObjSerialize()} and written to a file.
+ *
+ * @template T
+ * @extends QueueStore<T>
+ */
 class FileQueueStore implements QueueStore {
 
 	const LOCK_FOLDER = 'lock';
@@ -35,10 +46,19 @@ class FileQueueStore implements QueueStore {
     const DATA_FILE_SUFFIX = '.dat';
 	const LOCK_FILE_SUFFIX = '.lock';
 
+
 	private FsPath $dataDirFsPath;
 	private FsPath $lockDirFsPath;
 
-    function __construct(FsPath $dirFsPath, private FsPerm|string|int|null $filePerm = null) {
+	/**
+	 * @param class-string<T> $typeName
+	 * @param FsPath $dirFsPath
+	 * @param FsPerm|string|int|null $filePerm
+	 * @param string|null $dataClassName used for {@link SerializationUtils::strictObjSerialize()} and
+	 * 		{@link SerializationUtils::strictObjUnserialize()}
+	 */
+    function __construct(private string $typeName, FsPath $dirFsPath, private FsPerm|string|int|null $filePerm = null,
+			?string $dataClassName = null) {
 		$this->dataDirFsPath = $dirFsPath->ext(self::DATA_FOLDER);
 		$this->lockDirFsPath = $dirFsPath->ext(self::LOCK_FOLDER);
     }
@@ -64,21 +84,46 @@ class FileQueueStore implements QueueStore {
 		$fsPath = $this->createNewDataFsPath();
 		$fileLock = Sync::byFileLock($this->createLockFsPath($fsPath));
 		ExUtils::try(fn () => $fileLock->acquire());
-		$this->putContents($fsPath, $data);
-		$fileLock->release();
+		// try finally theoretically not necessary because __destruct of FileLock would relaes lock on failure anyway.
+		try {
+			$this->putContents($fsPath, $data);
+		} finally {
+			$fileLock->release();
+		}
     }
 
-	private function putContents(FsPath $fileFsPath, mixed $data): void {
+	private function putContents(FsPath $fileFsPath, mixed $data): mixed {
 		try {
-			IoUtils::putContents($fileFsPath, serialize($data));
-		} catch (IoException $e) {
+			$ser = SerializationUtils::checkedStrictSerialize($data, $this->typeName);
+			// it might be necessary to reject data if there are no unserializable, e.g. due to its size.
+			$data = SerializationUtils::checkedStrictUnserialize($ser, $this->typeName);
+			IoUtils::putContents($fileFsPath, $ser);
+		} catch (IoException|UnserializationFailedException $e) {
 			throw new QueueOperationFailedException(previous: $e);
+		} catch (TypeNotSupportedForSerializationException $e) {
+			throw new ConfigurationError(static::class . ' does not support type ' . $this->typeName
+					. ' Reason: ' . $e->getMessage(), previous: $e);
 		}
 
 		if ($this->filePerm !== null) {
 			ExUtils::try(fn () => $fileFsPath->chmod($this->filePerm));
 		}
 
+		return $data;
+	}
+
+	/**
+	 * @throws UnserializationFailedException
+	 */
+	private function readContents(FsPath $fileFsPath): mixed {
+		try {
+			return SerializationUtils::checkedStrictUnserialize(IoUtils::getContents($fileFsPath), $this->typeName);
+		} catch (IoException $e) {
+			throw new QueueOperationFailedException(previous: $e);
+		} catch (TypeNotSupportedForSerializationException $e) {
+			throw new ConfigurationError(static::class . ' does not support type ' . $this->typeName
+					. ' Reason: ' . $e->getMessage(), previous: $e);
+		}
 	}
 
 	function poll(): ?PolledItemRef {
@@ -93,7 +138,13 @@ class FileQueueStore implements QueueStore {
 				continue;
 			}
 
-			return $this->createPolledItemRef($fsPath, $fileLock);
+			try {
+				return $this->createPolledItemRef($fsPath, $fileLock);
+			} catch (UnserializationFailedException $e) {
+				trigger_error(static::class . ': Corrupted file "' . $fsPath
+						. '" will be deleted due to unserialization error: ' . $e->getMessage());
+				$fsPath->delete();
+			}
 		}
 
 		return null;
@@ -103,17 +154,18 @@ class FileQueueStore implements QueueStore {
 		$fsPath = $this->createNewDataFsPath();
 		$fileLock = Sync::byFileLock($this->createLockFsPath($fsPath));
 		ExUtils::try(fn () => $fileLock->acquire());
-		$this->putContents($fsPath, $data);
+		$data = $this->putContents($fsPath, $data);
+
+
 		return $this->createPolledItemRef($fsPath, $fileLock);
+
 	}
 
+	/**
+	 * @throws UnserializationFailedException
+	 */
 	private function createPolledItemRef(FsPath $fsPath, FileLock $fileLock): PolledItemRef {
-		try {
-			$data = StringUtils::unserialize(IoUtils::getContents($fsPath));
-		} catch (IoException $e) {
-			throw new QueueOperationFailedException(previous: $e);
-		}
-
+		$data = $this->readContents($fsPath);
 		return new FilePolledItemRef($fsPath, $fileLock, $data);
 	}
 

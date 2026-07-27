@@ -16,8 +16,10 @@
 namespace n2n\queue;
 
 /**
- * References a polled item. If neither {@link #ack()} nor {@link #reject()} is called, the item must be requeued
- * in any case.
+ * References a polled item. If neither {@link #ack()} nor {@link #reject()} is called, the item must be guarateed to do
+ * requeued after destructor call.
+ *
+ * @template T
  */
 interface PolledItemRef {
 
@@ -31,5 +33,8 @@ interface PolledItemRef {
 	 */
 	function reject(bool $requeue = false): void;
 
+	/**
+	 * @var T
+	 */
 	public mixed $data { get; }
 }

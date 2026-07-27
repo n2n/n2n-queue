@@ -15,12 +15,20 @@
  */
 namespace n2n\queue;
 
+use n2n\util\type\TypeName;
+
 interface QueueStorePool {
 
 	/**
 	 * Returns the QueueStore for the given namespace or creates a new one if it does not exist yet.
+	 *
+	 * @template T
+	 * @param string $namespace
+	 * @param class-string<T> $typeName tells the queue the exact data type the queue it is expected
+	 *   to add und poll.
+	 * @return QueueStore<T>
 	 */
-	function lookupQueueStore(string $namespace): QueueStore;
+	function lookupQueueStore(string $namespace, string $typeName): QueueStore;
 
 	/**
 	 * Removes all QueueStores managed by this pool.

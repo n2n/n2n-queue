@@ -35,8 +35,8 @@ class FileQueueStorePoolTest extends TestCase {
 	function testLookup() {
 		$pool = QueueStorePools::file($this->tempDirFsPath, 0777, 0777);
 
-		$pool->lookupQueueStore('ns\\ns1')->add('name', ['prop' => 'huii']);
-		$pool->lookupQueueStore('ns\\ns2')->add('name', ['prop' => 'huii']);
+		$pool->lookupQueueStore('ns\\ns1', 'string')->add('name', ['prop' => 'huii']);
+		$pool->lookupQueueStore('ns\\ns2', 'string')->add('name', ['prop' => 'huii']);
 
 		$this->assertCount(2, $this->tempDirFsPath->getChildren());
 		$this->assertTrue($this->tempDirFsPath->ext('ns-ns1')->exists());
@@ -47,14 +47,13 @@ class FileQueueStorePoolTest extends TestCase {
 	function testClear() {
 		$pool = QueueStorePools::file($this->tempDirFsPath, 0777, 0777);
 
-		$pool->lookupQueueStore('ns\\ns1')->add(['prop' => 'huii']);
-		$pool->lookupQueueStore('ns\\ns2')->add(['prop' => 'huii']);
+		$pool->lookupQueueStore('ns\\ns1', 'string')->add('huii');
+		$pool->lookupQueueStore('ns\\ns2', 'string')->add('huii');
 
-		$this->assertCount(2, $this->tempDirFsPath->getChildren());
-
+		$pattern = '*' . DIRECTORY_SEPARATOR . FileQueueStore::DATA_FOLDER . DIRECTORY_SEPARATOR . '*';
+		$this->assertCount(2, $this->tempDirFsPath->getChildren($pattern));
 		$pool->clear();
-
-		$this->assertCount(0, $this->tempDirFsPath->getChildren());
+		$this->assertCount(0, $this->tempDirFsPath->getChildren($pattern));
 	}
 
 }

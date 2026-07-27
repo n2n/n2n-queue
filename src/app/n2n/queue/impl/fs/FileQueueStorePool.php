@@ -12,7 +12,8 @@
  * N2N is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
  * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details: http://www.gnu.org/licenses/
- */namespace n2n\queue\impl\fs;
+ */
+namespace n2n\queue\impl\fs;
 
 use n2n\util\io\fs\FsPath;
 use n2n\util\type\TypeUtils;
@@ -28,7 +29,8 @@ class FileQueueStorePool implements QueueStorePool {
 
 	}
 
-	public function lookupQueueStore(string $namespace): QueueStore {
+
+	public function lookupQueueStore(string $namespace, string $typeName): QueueStore {
 		$dirFsPath = $this->dirFsPath->ext(TypeUtils::encodeNamespace($namespace));
 		if (!$dirFsPath->isDir()) {
 			ExUtils::try(fn () => $dirFsPath->mkdirs($this->dirPerm));
@@ -38,11 +40,14 @@ class FileQueueStorePool implements QueueStorePool {
 			}
 		}
 
-		return new FileQueueStore($dirFsPath, $this->filePerm);
+		return new FileQueueStore($typeName, $dirFsPath, $this->filePerm);
 	}
 
 	public function clear(): void {
-		$this->dirFsPath->delete();
+		foreach ($this->dirFsPath->getChildren() as $fsPath) {
+			(new FileQueueStore('any', $fsPath))->clear();
+		}
+
 	}
 
 }

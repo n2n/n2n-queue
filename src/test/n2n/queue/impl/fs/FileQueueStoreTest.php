@@ -33,12 +33,12 @@ class FileQueueStoreTest extends TestCase {
 	}
 
 	function testAck() {
-		$queue = new FileQueueStore($this->tempDirFsPath, 0777);
+		$queue = new FileQueueStore('string', $this->tempDirFsPath, 0777);
 		
-		$queue->add(['prop' => 'dato']);
+		$queue->add('dato');
 		$polledRef = $queue->poll();
 
-		$this->assertSame(['prop' => 'dato'], $polledRef->data);
+		$this->assertSame('dato', $polledRef->data);
 		$this->assertCount(1, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
 		$polledRef->ack();
 		$this->assertCount(0, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
@@ -47,19 +47,19 @@ class FileQueueStoreTest extends TestCase {
 	}
 
 	function testReject() {
-		$queue = new FileQueueStore($this->tempDirFsPath, 0777);
+		$queue = new FileQueueStore('string', $this->tempDirFsPath, 0777);
 
-		$queue->add(['prop' => 'dato']);
+		$queue->add('dato');
 
 		$polledRef = $queue->poll();
-		$this->assertSame(['prop' => 'dato'], $polledRef->data);
+		$this->assertSame('dato', $polledRef->data);
 		$this->assertCount(1, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
 		$polledRef->reject(true);
 
 		$this->assertCount(0, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
 
 		$polledRef = $queue->poll();
-		$this->assertSame(['prop' => 'dato'], $polledRef->data);
+		$this->assertSame('dato', $polledRef->data);
 		$this->assertCount(1, $this->tempDirFsPath->ext(FileQueueStore::LOCK_FOLDER)->getChildren());
 		$polledRef->reject();
 
@@ -69,13 +69,13 @@ class FileQueueStoreTest extends TestCase {
 	}
 
 	function testPollWithoutInit() {
-		$queue = new FileQueueStore($this->tempDirFsPath, 0777);
+		$queue = new FileQueueStore('string', $this->tempDirFsPath, 0777);
 
 		$this->assertNull($queue->poll());
 	}
 
 	function testPollOrderWithAcquireNb() {
-		$queue = new FileQueueStore($this->tempDirFsPath, 0777);
+		$queue = new FileQueueStore('string', $this->tempDirFsPath, 0777);
 		$queue->add('dato1');
 		$queue->add('dato2');
 
@@ -87,7 +87,7 @@ class FileQueueStoreTest extends TestCase {
 	}
 
 	function testAddAndPoll() {
-		$queue = new FileQueueStore($this->tempDirFsPath, 0777);
+		$queue = new FileQueueStore('string', $this->tempDirFsPath, 0777);
 		$ref1 = $queue->addAndPoll('dato1');
 		$ref2 = $queue->addAndPoll('dato2');
 
@@ -124,7 +124,7 @@ class FileQueueStoreTest extends TestCase {
 	 * @throws \ReflectionException
 	 */
 	function testClearDoNotRemoveLockFiles() {
-		$queue = new FileQueueStore($this->tempDirFsPath, 0777);
+		$queue = new FileQueueStore('string', $this->tempDirFsPath, 0777);
 		$queue->add('dato1');
 		$queue->add('dato2');
 
@@ -146,7 +146,7 @@ class FileQueueStoreTest extends TestCase {
 	}
 
 	function testRefDestruct() {
-		$queue = new FileQueueStore($this->tempDirFsPath, 0777);
+		$queue = new FileQueueStore('string', $this->tempDirFsPath, 0777);
 		$queue->add('dato1');
 
 		$ref1 = $queue->poll();
