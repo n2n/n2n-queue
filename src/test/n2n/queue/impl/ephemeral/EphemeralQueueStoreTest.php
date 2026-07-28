@@ -94,11 +94,6 @@ class EphemeralQueueStoreTest extends TestCase {
 		$polledItemRef1->ack();
 		$polledItemRef2->ack();
 
-		/*unset($polledItemRef1);
-		unset($polledItemRef2);
-		gc_collect_cycles();
-		*/
-
 		$items = $this->getQueueItemsFromStore();
 		$this->assertCount(1, $items);
 
@@ -148,5 +143,18 @@ class EphemeralQueueStoreTest extends TestCase {
 		$this->assertFalse(isset($items[0]));
 		$this->assertFalse($items[1]->processing);
 		$this->assertFalse($items[2]->processing);
+	}
+
+	function testAddAndPoll(): void {
+		$polledItemRef = $this->store->addAndPoll('Test 4 Data');
+		$this->assertSame(4, count($this->getQueueItemsFromStore()));
+		$polledItemRef->ack();
+		$this->assertSame(3, count($this->getQueueItemsFromStore()));
+	}
+
+	function testClear(): void {
+		$this->assertSame(3, count($this->getQueueItemsFromStore()));
+		$this->store->clear();
+		$this->assertSame(0, count($this->getQueueItemsFromStore()));
 	}
 }
