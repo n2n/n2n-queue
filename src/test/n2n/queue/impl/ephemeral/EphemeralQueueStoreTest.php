@@ -75,6 +75,7 @@ class EphemeralQueueStoreTest extends TestCase {
 		$this->assertFalse($items[2]->processing);
 	}
 
+	// very similar to testSequentialPollAndAck() test.
 	function testSequentialPollAndReject() {
 		$this->assertSame(3, count($this->getQueueItemsFromStore()));
 		$polledItemRef = $this->store->poll();
