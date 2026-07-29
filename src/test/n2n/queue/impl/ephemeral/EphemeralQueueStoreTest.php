@@ -75,6 +75,26 @@ class EphemeralQueueStoreTest extends TestCase {
 		$this->assertFalse($items[2]->processing);
 	}
 
+	function testSequentialPollAndReject() {
+		$this->assertSame(3, count($this->getQueueItemsFromStore()));
+		$polledItemRef = $this->store->poll();
+
+		$items = $this->getQueueItemsFromStore();
+		$this->assertCount(3, $items);
+		$this->assertTrue($items[0]->processing);
+		$this->assertFalse($items[1]->processing);
+		$this->assertFalse($items[2]->processing);
+		$this->assertSame('Test 1 Data', $polledItemRef->data);
+
+		$polledItemRef->reject(false);
+
+		$items = $this->getQueueItemsFromStore();
+		$this->assertCount(2, $items);
+		$this->assertFalse(isset($items[0]));
+		$this->assertFalse($items[1]->processing);
+		$this->assertFalse($items[2]->processing);
+	}
+
 	function testAckCallOnAlreadyProcessedPolledItemRef(): void {
 		$items = $this->getQueueItemsFromStore();
 		$this->assertSame(3, count($items));
@@ -107,16 +127,17 @@ class EphemeralQueueStoreTest extends TestCase {
 	}
 
 	function testRequeue(): void {
-		$this->assertSame(3, count($this->getQueueItemsFromStore()));
-		$polledItemRef = $this->store->poll();
+		$polledItemRef1 = $this->store->poll();
+		$polledItemRef2 = $this->store->poll();
 
 		$items = $this->getQueueItemsFromStore();
 		$this->assertCount(3, $items);
 		$this->assertTrue($items[0]->processing);
-		$this->assertFalse($items[1]->processing);
+		$this->assertTrue($items[1]->processing);
 		$this->assertFalse($items[2]->processing);
 
-		$polledItemRef->reject(true);
+		$polledItemRef1->reject(true);
+		$polledItemRef2->reject(true);
 
 		$items = $this->getQueueItemsFromStore();
 		$this->assertCount(3, $items);
@@ -146,10 +167,18 @@ class EphemeralQueueStoreTest extends TestCase {
 	}
 
 	function testAddAndPoll(): void {
+		$this->assertSame(3, count($this->getQueueItemsFromStore()));
 		$polledItemRef = $this->store->addAndPoll('Test 4 Data');
 		$this->assertSame(4, count($this->getQueueItemsFromStore()));
+
 		$polledItemRef->ack();
 		$this->assertSame(3, count($this->getQueueItemsFromStore()));
+
+		$firstItem = $this->getFirstItemFromQueue();
+		$this->assertSame('Test 2 Data', $firstItem->data);
+
+		$lastItem = $this->getQueueItemsFromStore()[3];
+		$this->assertSame('Test 4 Data', $lastItem->data);
 	}
 
 	function testClear(): void {
