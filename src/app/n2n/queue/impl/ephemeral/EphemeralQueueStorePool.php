@@ -12,6 +12,10 @@ class EphemeralQueueStorePool implements QueueStorePool {
 	 */
 	private array $pool;
 
+	function __construct() {
+		$this->pool = array();
+	}
+
 	function lookupQueueStore(string $namespace, string $typeName): QueueStore {
 		if(!array_key_exists($namespace, $this->pool)) {
 			$this->pool[$namespace] = new EphemeralQueueStore();
@@ -21,5 +25,6 @@ class EphemeralQueueStorePool implements QueueStorePool {
 
 	function clear(): void {
 		unset($this->pool);
+		$this->pool = array();
 	}
 }
