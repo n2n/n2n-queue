@@ -38,7 +38,7 @@ class EphemeralQueueStorePoolTest extends TestCase  {
 
 	function testDefaultPool() :void {
 		$this->assertCount(1, $this->getStoresFromPool());
-		$store = $this->pool->lookupQueueStore($this->defaultNamespace, 'mixed');
+		$store = $this->pool->lookupQueueStore('Default Pool', 'mixed');
 		$items = $this->getQueueItemsFromStore($store);
 		$this->assertCount(3, $items);
 	}
@@ -57,8 +57,12 @@ class EphemeralQueueStorePoolTest extends TestCase  {
 		$store = $this->pool->lookupQueueStore('Pool 2 (keep)', 'mixed');
 		$store = $this->pool->lookupQueueStore('Pool 3 (keep)', 'mixed');
 
-		$this->pool->deleteFromQueueStore($this->defaultNamespace);
+		$this->pool->deleteFromQueueStore('Default Pool');
 		$this->assertCount(2, $this->getStoresFromPool());
+
+		$this->assertFalse(isset($this->getStoresFromPool()['Default Pool']));
+		$this->assertTrue(isset($this->getStoresFromPool()['Pool 2 (keep)']));
+		$this->assertTrue(isset($this->getStoresFromPool()['Pool 3 (keep)']));
 	}
 
 	function testClearExistingPool() :void {
