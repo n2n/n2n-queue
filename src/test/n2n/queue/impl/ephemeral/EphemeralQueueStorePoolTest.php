@@ -12,7 +12,7 @@ class EphemeralQueueStorePoolTest extends TestCase  {
 
 	private string $defaultNamespace;
 
-	function setUp():void {
+	function setUp() :void {
 		$this->defaultNamespace = 'Default Pool';
 		$this->pool = new EphemeralQueueStorePool();
 
@@ -43,12 +43,19 @@ class EphemeralQueueStorePoolTest extends TestCase  {
 		$this->assertCount(3, $items);
 	}
 
-	function testAddNewPool() :void {
+	function testAddNewPoolWithOneItem() :void {
 		$store = $this->pool->lookupQueueStore('Pool 2', 'mixed');
 		$this->assertCount(2, $this->getStoresFromPool());
+
+		$store->add('Pool 2 - Test 1 Data');
+
+		$items = $this->getQueueItemsFromStore($store);
+		$this->assertCount(1, $items);
 	}
 
 	function testClearExistingPool() :void {
+		$existingPools = $this->getStoresFromPool();
+		$this->assertCount(1, $existingPools);
 		$this->pool->clear();
 		$existingPools = $this->getStoresFromPool();
 		$this->assertCount(0, $existingPools);
