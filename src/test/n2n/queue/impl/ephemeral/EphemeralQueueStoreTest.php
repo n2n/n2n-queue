@@ -182,6 +182,25 @@ class EphemeralQueueStoreTest extends TestCase {
 		$this->assertSame('Test 4 Data', $lastItem->data);
 	}
 
+	function testDisposeItem() {
+		$this->markTestSkipped('is dispose function used correctly?');
+
+		$this->assertSame(3, count($this->getQueueItemsFromStore()));
+
+		$firstItem = $this->getQueueItemsFromStore()[0];
+
+		$this->assertFalse($firstItem->disposed);
+
+		EphemeralQueueItem::dispose($firstItem);
+
+		$this->assertTrue($firstItem->disposed);
+	}
+
+	function testRegisterDisposedCallback(): void {
+		$this->markTestSkipped('how to implement registerDisposedCallback?');
+		EphemeralQueueItem::registerDisposedCallback();
+	}
+
 	function testClear(): void {
 		$this->assertSame(3, count($this->getQueueItemsFromStore()));
 		$this->store->clear();

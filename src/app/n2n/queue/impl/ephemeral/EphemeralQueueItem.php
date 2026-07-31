@@ -14,8 +14,9 @@ class EphemeralQueueItem {
 		$this->data = $data;
 	}
 
-	static function dispose() {
-		$disposed = true;
+	static function dispose(EphemeralQueueItem $item) {
+		$item->disposed = true;
+		return $item;
 	}
 
 	static function registerDisposedCallback(Closure $closure) {
