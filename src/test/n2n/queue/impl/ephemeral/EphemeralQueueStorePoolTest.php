@@ -53,6 +53,14 @@ class EphemeralQueueStorePoolTest extends TestCase  {
 		$this->assertCount(1, $items);
 	}
 
+	function testRemoveStoreFromPool() :void {
+		$store = $this->pool->lookupQueueStore('Pool 2 (keep)', 'mixed');
+		$store = $this->pool->lookupQueueStore('Pool 3 (keep)', 'mixed');
+
+		$this->pool->deleteFromQueueStore($this->defaultNamespace);
+		$this->assertCount(2, $this->getStoresFromPool());
+	}
+
 	function testClearExistingPool() :void {
 		$existingPools = $this->getStoresFromPool();
 		$this->assertCount(1, $existingPools);

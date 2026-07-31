@@ -23,6 +23,10 @@ class EphemeralQueueStorePool implements QueueStorePool {
 		return $this->pool[$namespace];
 	}
 
+	function deleteFromQueueStore(string $namespace): void {
+		unset($this->pool[$namespace]);
+	}
+
 	function clear(): void {
 		unset($this->pool);
 		$this->pool = array();
